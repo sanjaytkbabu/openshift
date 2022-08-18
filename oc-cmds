@@ -1,0 +1,35 @@
+# We got 2 projects - dev & tools. We'll create a build in tools and deploy it to dev
+
+# To switch to a project
+oc project prjname
+
+# To create a new build of rocketchat, source folder is provied as param
+oc -n [-tools] new-build https://github.com/BCDevOps/devops-platform-workshops-labs/ --context-dir=apps/rocketchat --name=rocketchat-[username]
+# ref: https://docs.openshift.com/dedicated/3/cli_reference/basic_cli_operations.html#new-build
+
+# To deploy an image built earlier
+oc -n [-dev] new-app [-tools]/rocketchat-[username]:dev --name=rocketchat-[username]
+
+# List templates 
+oc -n openshift get template/mongodb-ephemeral -o json | oc process -f - --parameters=true
+
+# To create mongo db based on a template in the catalog
+oc -n d8f105-dev new-app --template=openshift/mongodb-ephemeral -p MONGODB_VERSION=3.6 -p DATABASE_SERVICE_NAME=mongodb-sanjbabu -p MONGODB_USER=dbuser -p MONGODB_PASSWORD=dbpass -p MONGODB_DATABASE=rocketchat --name=rocketchat-sanjbabu
+
+
+
+# cheatsheet:
+# List/validate resources to be deleted by labels
+oc -n [-tools] get all -l build=rocketchat-[username]
+
+# Delete by labels
+oc -n [-tools] delete all -l build=rocketchat-[username]
+
+# List/validate resources to be deleted by get+grep+delete
+oc -n [-dev] get all,pvc,secret,configmap -o name --no-headers | grep -i -F -e '-[username]'
+
+# Delete resources by using get+grep+delete
+oc -n [-dev] get all -o name --no-headers | grep -i -F -e '-[username]' | xargs -I {} oc  -n [-dev] delete '{}'
+
+# Delete data/unrecoverable resources (not covered by 'all') by using get+grep+delete
+oc -n [-dev] get pvc,secret,configmap -o name --no-headers | grep -i -F -e '-[username]' | xargs -I {} oc -n [-dev] delete '{}'
